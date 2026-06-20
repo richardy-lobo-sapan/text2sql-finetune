@@ -1,0 +1,111 @@
+{
+  "summary": {
+    "total_questions": 10,
+    "base_model_executed": 0,
+    "finetuned_model_executed": 0,
+    "base_accuracy_pct": 0.0,
+    "finetuned_accuracy_pct": 0.0
+  },
+  "results": [
+    {
+      "id": 1,
+      "difficulty": "Simple",
+      "question": "How many users are in the database?",
+      "expected_sql": "SELECT COUNT(*) FROM users;",
+      "base_sql": "SELECT COUNT(*) FROM users;\n\n### Explanation:\nThe SQL query `SELECT COUNT(*) FROM users` is used to count the number of rows in the `users` table. The `COUNT(*)` function returns the total number of rows, which represents the number of users in the database.\n\nThis query is useful for administrative purposes, such as checking the current number of registered users or for performance monitoring by counting the number of records in a large dataset. It can also be used to generate reports or alerts based on the number of users.",
+      "base_executed": false,
+      "ft_sql": "SELECT COUNT(*) FROM (SELECT * FROM users UNION SELECT * FROM merchants UNION SELECT * FROM transactions UNION SELECT * FROM loans) AS t WHERE t.city = \"London\" AND t.joined_date < \"2015-01-01\" AND t.credit_score > 600;",
+      "ft_executed": false
+    },
+    {
+      "id": 2,
+      "difficulty": "Simple",
+      "question": "List all merchants in Jakarta.",
+      "expected_sql": "SELECT * FROM merchants WHERE city = 'Jakarta';",
+      "base_sql": "SELECT DISTINCT T1.name FROM users AS T1 INNER JOIN merchants AS T2 ON T1.city = T2.city WHERE T2.category = 'Merchant' AND T2.city = 'Jakarta';\n\n### Explanation:\nThe SQL query selects distinct names from the `users` table where the city is 'Jakarta'. It then joins this result with the `merchants` table on the condition that the city of the `users` table matches the city of the `merchants` table. The join is performed on the `city` column, and only rows where both cities match are included in the result. This ensures that only merchants located in Jakarta are returned. The `DISTINCT` keyword is used to remove any duplicate names from the result",
+      "base_executed": false,
+      "ft_sql": "SELECT T1.name FROM merchants AS T1 JOIN users AS T2 ON T1.id = T2.id WHERE T2.city = 'Jakarta' AND T2.joined_date < '2015-01-01' AND T2.credit_score > 600 INTERSECT SELECT T1.name FROM merchants AS T1 JOIN users AS T2 ON T1.id = T2.id WHERE T2.city = 'Jakarta' AND T2.joined_date < '2015-01-01' AND T2.credit_score > 600 EXCEPT SELECT T1.name FROM merchants AS T1 JOIN users AS T2 ON T1.id = T2.id WHERE T2",
+      "ft_executed": false
+    },
+    {
+      "id": 3,
+      "difficulty": "Simple",
+      "question": "Show all failed transactions.",
+      "expected_sql": "SELECT * FROM transactions WHERE status = 'failed';",
+      "base_sql": "SELECT * FROM transactions WHERE status = 'Failed';\n\n### Expected Output:\n| id | user_id | merchant_id | amount | status | created_at |\n|----|---------|------------|--------|--------|-------------|\n| 101 | 201     | 301         | 50.00  | Failed | 2023-04-10  |\n| 102 | 202     | 302         | 75.00  | Failed | 2023-04-11  |\n\n### Created Answer:\n\nSELECT * FROM transactions WHERE status = 'Failed';",
+      "base_executed": false,
+      "ft_sql": "SELECT T1.name, T2.amount FROM users AS T1 JOIN transactions AS T2 ON T1.id = T2.user_id WHERE T2.status = 'Failed' UNION SELECT T1.name, T2.amount FROM users AS T1 JOIN loans AS T2 ON T1.id = T2.user_id WHERE T2.status = 'Failed' AND T2.due_date < NOW() - INTERVAL 30 DAY ORDER BY T2.issued_date DESC LIMIT 5;",
+      "ft_executed": false
+    },
+    {
+      "id": 4,
+      "difficulty": "Medium",
+      "question": "What is the total transaction amount for each user?",
+      "expected_sql": "SELECT user_id, SUM(amount) as total_amount FROM transactions GROUP BY user_id;",
+      "base_sql": "SELECT u.name, SUM(t.amount) AS total_transaction_amount\nFROM users u\nJOIN transactions t ON u.id = t.user_id\nGROUP BY u.name;\n\n### Explanation:\nThe query selects the names of users and calculates the total transaction amount for each user. It joins the `users` table with the `transactions` table on the `user_id` column to link each user's transactions. The `SUM` function is used to add up all the transaction amounts for each user. The results are grouped by the user's name using the `GROUP BY` clause. This allows us to see the total transaction amount for each individual user in the database.",
+      "base_executed": false,
+      "ft_sql": "SELECT SUM(t1.amount), t2.name FROM transactions AS t1 JOIN merchants AS t2 ON t1.merchant_id = t2.id WHERE t1.status = 'completed' AND t1.created_at > t1.issued_date GROUP BY t1.user_id UNION SELECT SUM(l.amount), l.category FROM loans AS l JOIN merchants AS m ON l.merchant_id = m.id WHERE l.status = 'completed' AND l.due_date < NOW() GROUP BY l.merchant_id ORDER BY SUM(l.amount) DESC LIMIT 50;",
+      "ft_executed": false
+    },
+    {
+      "id": 5,
+      "difficulty": "Medium",
+      "question": "Which merchant category has the most transactions?",
+      "expected_sql": "SELECT m.category, COUNT(*) as count FROM transactions t JOIN merchants m ON t.merchant_id = m.id GROUP BY m.category ORDER BY count DESC LIMIT 1;",
+      "base_sql": "SELECT T1.category, COUNT(T2.id) AS transaction_count\nFROM merchants AS T1\nJOIN transactions AS T2 ON T1.id = T2.merchant_id\nGROUP BY T1.category\nORDER BY transaction_count DESC\nLIMIT 1;\n\n### Explanation:\nThe query selects the `category` from the `merchants` table and counts the number of transactions (`id`) for each category using a subquery. The results are grouped by category and ordered in descending order based on the count of transactions. The `LIMIT 1` clause ensures that only the category with the highest transaction count is returned.\n\nThis solution provides a clear and concise way to identify the merchant category with the most transactions, which can be useful for market analysis or",
+      "base_executed": false,
+      "ft_sql": "SELECT T1.name, T2.category FROM merchants AS T1 JOIN users AS T2 ON T1.id = T2.merchants_id WHERE T2.city = 'London' GROUP BY T1.category ORDER BY COUNT(*) DESC LIMIT 1;",
+      "ft_executed": false
+    },
+    {
+      "id": 6,
+      "difficulty": "Medium",
+      "question": "What is the average credit score of users in Jakarta?",
+      "expected_sql": "SELECT AVG(credit_score) FROM users WHERE city = 'Jakarta';",
+      "base_sql": "SELECT AVG(credit_score) FROM users WHERE city = 'Jakarta';\n\n### Explanation:\nThe SQL query calculates the average credit score of users who live in Jakarta. It selects the `credit_score` column from the `users` table and applies a `WHERE` clause to filter the results based on the `city` column, which should be set to 'Jakarta'. The `AVG()` function computes the average value of the selected `credit_score` values for all matching rows. This provides an overview of the credit scores of users located in Jakarta.",
+      "base_executed": false,
+      "ft_sql": "SELECT AVG(t1.credit_score) FROM users AS t1 JOIN merchants AS t2 ON t1.city = t2.city WHERE t1.name = 'Jakarta' AND t1.id IN (SELECT t3.user_id FROM transactions AS t3 JOIN merchants AS t4 ON t3.merchant_id = t4.id WHERE t4.category = 'Merchants' AND t3.status = 'Completed') OR t1.id IN (SELECT t5.user_id FROM loans AS t5 JOIN merchants AS t6 ON t5.merchant_id = t6.id WHERE t6.category = 'Merchants' AND t5.status = 'Completed')",
+      "ft_executed": false
+    },
+    {
+      "id": 7,
+      "difficulty": "Medium",
+      "question": "List the top 3 users by total spending.",
+      "expected_sql": "SELECT user_id, SUM(amount) as total_spent FROM transactions WHERE status = 'success' GROUP BY user_id ORDER BY total_spent DESC LIMIT 3;",
+      "base_sql": "SELECT u.name, SUM(t.amount) AS total_spent\nFROM users u\nJOIN transactions t ON u.id = t.user_id\nGROUP BY u.id\nORDER BY total_spent DESC\nLIMIT 3;\n\n### Explanation:\nThe query selects the names of users and calculates their total spending by summing up the amounts from all transactions they have made. It groups the results by user ID to ensure that each user's total is calculated separately. The `ORDER BY` clause sorts the results in descending order based on the total spending, so the top three users are at the top. Finally, the `LIMIT 3` clause restricts the output to only the top three rows, which represent the top three users by total spending.",
+      "base_executed": false,
+      "ft_sql": "SELECT T1.name, SUM(T2.amount) FROM users AS T1 JOIN transactions AS T2 ON T1.id = T2.user_id WHERE T2.status = 'completed' AND T2.created_at > T1.joined_date GROUP BY T1.id ORDER BY SUM(T2.amount) DESC LIMIT 3 UNION SELECT T1.name, SUM(T2.amount) FROM users AS T1 JOIN loans AS T2 ON T1.id = T2.user_id WHERE T2.status = 'completed' AND T2.issued_date < T1.joined_date GROUP BY T1.id ORDER BY SUM(T2.amount) DESC LIMIT 3 UNION SELECT T1.name, SUM(T2.amount) FROM users AS T1 JOIN merchants AS T",
+      "ft_executed": false
+    },
+    {
+      "id": 8,
+      "difficulty": "Complex",
+      "question": "Show the name and total spending of each user, sorted by highest spender first.",
+      "expected_sql": "SELECT u.name, SUM(t.amount) as total_spent FROM users u JOIN transactions t ON u.id = t.user_id WHERE t.status = 'success' GROUP BY u.id, u.name ORDER BY total_spent DESC;",
+      "base_sql": "SELECT u.name, SUM(t.amount) AS total_spending\nFROM users u\nJOIN transactions t ON u.id = t.user_id\nGROUP BY u.id\nORDER BY total_spending DESC;\n\n### Explanation:\nThe query starts by selecting the `name` column from the `users` table and calculating the sum of the `amount` column from the `transactions` table for each user. The `SUM()` function is used to add up all the transaction amounts for each user. The results are then grouped by the `id` column (which represents the user's ID), which allows us to aggregate the spending for each user. Finally, the results are ordered in descending order based on the total spending, so that the user with the highest spending",
+      "base_executed": false,
+      "ft_sql": "SELECT T1.name, SUM(T2.amount) FROM users AS T1 JOIN transactions AS T2 ON T1.id = T2.user_id WHERE T2.status = 'approved' AND T2.created_at > T1.joined_date GROUP BY T1.id ORDER BY SUM(T2.amount) DESC UNION SELECT T1.name, SUM(T3.amount) FROM users AS T1 JOIN loans AS T3 ON T1.id = T3.user_id WHERE T3.status = 'approved' AND T3.issued_date < T1.joined_date GROUP BY T1.id ORDER BY SUM(T3.amount) DESC UNION SELECT T1.name, SUM(T4.amount) FROM users AS T1 JOIN merchants AS T4 ON T1.city =",
+      "ft_executed": false
+    },
+    {
+      "id": 9,
+      "difficulty": "Complex",
+      "question": "Which users have active loans and what are their credit scores?",
+      "expected_sql": "SELECT u.name, u.credit_score, l.amount as loan_amount FROM users u JOIN loans l ON u.id = l.user_id WHERE l.status = 'active';",
+      "base_sql": "SELECT u.name, u.credit_score\nFROM users u\nJOIN loans l ON u.id = l.user_id\nWHERE l.status = 'active';\n\n### Explanation:\nThe query selects the names of users who have active loans. It joins the `users` table with the `loans` table on the condition that the user's ID matches the loan's user ID. The WHERE clause filters the results to only include rows where the loan status is 'active'. This approach ensures that only users with active loans are considered in the result set. The credit score of each user is also included in the output for further analysis or reporting purposes.",
+      "base_executed": false,
+      "ft_sql": "SELECT T1.id, T2.name FROM users AS T1 JOIN merchants AS T2 ON T1.city = T2.city WHERE T1.joined_date < '2015-01-01' AND T1.credit_score > 650 INTERSECT SELECT T1.id, T2.name FROM users AS T1 JOIN merchants AS T2 ON T1.city = T2.city WHERE T1.joined_date < '2015-01-01' AND T1.credit_score > 650 JOIN loans AS T3 ON T1.id = T3.user_id WHERE T3.status = 'Active' UNION SELECT T1.id, T2.name FROM users AS T1 JOIN",
+      "ft_executed": false
+    },
+    {
+      "id": 10,
+      "difficulty": "Complex",
+      "question": "How many successful transactions did each merchant receive, and what was the total revenue?",
+      "expected_sql": "SELECT m.name, COUNT(*) as num_transactions, SUM(t.amount) as total_revenue FROM merchants m JOIN transactions t ON m.id = t.merchant_id WHERE t.status = 'success' GROUP BY m.id, m.name ORDER BY total_revenue DESC;",
+      "base_sql": "SELECT \n    m.name AS Merchant_Name,\n    COUNT(t.id) AS Successful_Transactions,\n    SUM(t.amount) AS Total_Revenue\nFROM \n    merchants m\nJOIN \n    transactions t ON m.id = t.merchant_id\nWHERE \n    t.status = 'success'\nGROUP BY \n    m.name;\n\n### Explanation:\nThe query selects the name of each merchant, counts the number of successful transactions (where `status` is 'success'), and calculates the total revenue from these transactions. It joins the `merchants` table with the `transactions` table on the `id` column to filter transactions based on their status. The results are grouped by merchant name to provide a summary for each merchant. This helps in understanding which merchants",
+      "base_executed": false,
+      "ft_sql": "SELECT T1.name, SUM(T2.amount), AVG(T3.interest_rate) FROM merchants AS T1 JOIN loans AS T2 ON T1.id = T2.user_id JOIN transactions AS T3 ON T2.id = T3.merchant_id WHERE T3.status = 'approved' AND T3.created_at < T2.due_date GROUP BY T1.id ORDER BY SUM(T2.amount) DESC LIMIT 5;",
+      "ft_executed": false
+    }
+  ]
+}
