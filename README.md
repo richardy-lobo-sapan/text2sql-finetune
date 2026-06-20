@@ -5,11 +5,24 @@ Fine-tuning an LLM (≤3B params) for Text-to-SQL generation using a QLoRA appro
 ## 📌 Executive Summary
 This project implements a domain-specific Text-to-SQL fine-tuning pipeline designed to convert natural language questions into executable SQL queries for a fintech database context. The objective was to fine-tune a parameter-efficient model on free-tier compute and evaluate it strictly on real-world SQL execution accuracy against a live SQLite database, rather than standard textual similarity metrics.
 
-## 🛠️ Technical Stack
+## 🛠️ Technical Stack & Data
 * **Base Model:** `Qwen2.5-Coder-1.5B-Instruct` (Selected for its pre-training on code/SQL and small <=3B parameter footprint).
 * **Methodology:** QLoRA (4-bit quantization + LoRA adapters) using `Unsloth` for memory-efficient training on a single 16GB Tesla T4 GPU.
 * **Hyperparameters:** Rank $r=16$, $\alpha=32$, Learning Rate `2e-4`, Cosine Schedule, Effective Batch Size 16.
 * **Dataset:** `b-mc2/sql-create-context` (~45k examples mapped into a strict `Question -> Schema -> SQL` template).
+
+### Exploratory Data Analysis (EDA)
+Prior to training, the dataset was analyzed to ensure a healthy distribution of query lengths and SQL complexity.
+
+<p align="center">
+  <img src="plots/length_distribution.png" width="48%" alt="Length Distribution" />
+  <img src="plots/complexity_distribution.png" width="48%" alt="Complexity Distribution" />
+</p>
+
+### Training Performance
+<p align="center">
+  <img src="plots/loss_curve.png" width="60%" alt="Training Loss Curve" />
+</p>
 
 ## 📂 Repository Structure
 * `/notebooks/`
@@ -22,6 +35,10 @@ This project implements a domain-specific Text-to-SQL fine-tuning pipeline desig
 
 ## 🔬 Evaluation & Key Engineering Insights
 The evaluation was designed around strict execution accuracy against a synthetic SQLite database consisting of `users`, `merchants`, `transactions`, and `loans` tables. Both the base model and the fine-tuned model recorded a 0% execution success rate, which successfully isolated two distinct, highly instructive failure modes:
+
+<p align="center">
+  <img src="plots/evaluation_results.png" width="80%" alt="Evaluation Results" />
+</p>
 
 1. **Base Model (Chatty-Formatting Failure):** The instruction-tuned base model often generated syntactically correct SQL but failed execution because it appended conversational explanations (e.g., "### Explanation:"). Python's `sqlite3.Cursor.execute()` is a strict single-statement API; the trailing text caused the engine to reject the entire string.
 2. **Fine-Tuned Model (Structural Over-Complication & Dataset Bias):** The fine-tuning successfully taught the model perfect format discipline (zero conversational filler). However, because the `sql-create-context` dataset heavily skews toward complex multi-table queries, the model developed a structural bias. It aggressively over-complicated simple prompts, inserting unnecessary `UNION`s and hallucinating filter conditions (e.g., checking for city 'London' regardless of the prompt).
